@@ -27,7 +27,7 @@ from data import *
 from args import Args
 import create_graphs
 
-
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 def train_vae_epoch(epoch, args, rnn, output, data_loader,
                     optimizer_rnn, optimizer_output,
                     scheduler_rnn, scheduler_output):
@@ -51,8 +51,8 @@ def train_vae_epoch(epoch, args, rnn, output, data_loader,
         y_len = y_len.numpy().tolist()
         x = torch.index_select(x_unsorted,0,sort_index)
         y = torch.index_select(y_unsorted,0,sort_index)
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
 
         # if using ground truth to train
         h = rnn(x, pack=True, input_len=y_len)
@@ -111,16 +111,16 @@ def test_vae_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
 
     # generate graphs
     max_num_node = int(args.max_num_node)
-    y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
     for i in range(max_num_node):
         h = rnn(x_step)
         y_pred_step, _, _ = output(h)
         y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
         x_step = sample_sigmoid(y_pred_step, sample=True, sample_time=sample_time)
         y_pred_long[:, i:i + 1, :] = x_step
-        rnn.hidden = Variable(rnn.hidden.data).cuda()
+        rnn.hidden = Variable(rnn.hidden.data).to(device)
     y_pred_data = y_pred.data
     y_pred_long_data = y_pred_long.data.long()
 
@@ -153,18 +153,18 @@ def test_vae_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
         rnn.hidden = rnn.init_hidden(test_batch_size)
         # generate graphs
         max_num_node = int(args.max_num_node)
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
         for i in range(max_num_node):
             print('finish node',i)
             h = rnn(x_step)
             y_pred_step, _, _ = output(h)
             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-            x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
+            x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].to(device), current=i, y_len=y_len, sample_time=sample_time)
 
             y_pred_long[:, i:i + 1, :] = x_step
-            rnn.hidden = Variable(rnn.hidden.data).cuda()
+            rnn.hidden = Variable(rnn.hidden.data).to(device)
         y_pred_data = y_pred.data
         y_pred_long_data = y_pred_long.data.long()
 
@@ -200,8 +200,8 @@ def train_mlp_epoch(epoch, args, rnn, output, data_loader,
         y_len = y_len.numpy().tolist()
         x = torch.index_select(x_unsorted,0,sort_index)
         y = torch.index_select(y_unsorted,0,sort_index)
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
 
         h = rnn(x, pack=True, input_len=y_len)
         y_pred = output(h)
@@ -237,16 +237,16 @@ def test_mlp_epoch(epoch, args, rnn, output, test_batch_size=16, save_histogram=
 
     # generate graphs
     max_num_node = int(args.max_num_node)
-    y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
     for i in range(max_num_node):
         h = rnn(x_step)
         y_pred_step = output(h)
         y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
         x_step = sample_sigmoid(y_pred_step, sample=True, sample_time=sample_time)
         y_pred_long[:, i:i + 1, :] = x_step
-        rnn.hidden = Variable(rnn.hidden.data).cuda()
+        rnn.hidden = Variable(rnn.hidden.data).to(device)
     y_pred_data = y_pred.data
     y_pred_long_data = y_pred_long.data.long()
 
@@ -279,18 +279,18 @@ def test_mlp_partial_epoch(epoch, args, rnn, output, data_loader, save_histogram
         rnn.hidden = rnn.init_hidden(test_batch_size)
         # generate graphs
         max_num_node = int(args.max_num_node)
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
         for i in range(max_num_node):
             print('finish node',i)
             h = rnn(x_step)
             y_pred_step = output(h)
             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-            x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
+            x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].to(device), current=i, y_len=y_len, sample_time=sample_time)
 
             y_pred_long[:, i:i + 1, :] = x_step
-            rnn.hidden = Variable(rnn.hidden.data).cuda()
+            rnn.hidden = Variable(rnn.hidden.data).to(device)
         y_pred_data = y_pred.data
         y_pred_long_data = y_pred_long.data.long()
 
@@ -314,18 +314,18 @@ def test_mlp_partial_simple_epoch(epoch, args, rnn, output, data_loader, save_hi
         rnn.hidden = rnn.init_hidden(test_batch_size)
         # generate graphs
         max_num_node = int(args.max_num_node)
-        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+        y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+        y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+        x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
         for i in range(max_num_node):
             print('finish node',i)
             h = rnn(x_step)
             y_pred_step = output(h)
             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-            x_step = sample_sigmoid_supervised_simple(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
+            x_step = sample_sigmoid_supervised_simple(y_pred_step, y[:,i:i+1,:].to(device), current=i, y_len=y_len, sample_time=sample_time)
 
             y_pred_long[:, i:i + 1, :] = x_step
-            rnn.hidden = Variable(rnn.hidden.data).cuda()
+            rnn.hidden = Variable(rnn.hidden.data).to(device)
         y_pred_data = y_pred.data
         y_pred_long_data = y_pred_long.data.long()
 
@@ -358,8 +358,8 @@ def train_mlp_forward_epoch(epoch, args, rnn, output, data_loader):
         y_len = y_len.numpy().tolist()
         x = torch.index_select(x_unsorted,0,sort_index)
         y = torch.index_select(y_unsorted,0,sort_index)
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
 
         h = rnn(x, pack=True, input_len=y_len)
         y_pred = output(h)
@@ -403,19 +403,19 @@ def train_mlp_forward_epoch(epoch, args, rnn, output, data_loader):
 #         rnn.hidden = rnn.init_hidden(test_batch_size)
 #         # generate graphs
 #         max_num_node = int(args.max_num_node)
-#         y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # normalized prediction score
-#         y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-#         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+#         y_pred = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # normalized prediction score
+#         y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+#         x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
 #         for i in range(max_num_node):
 #             # 1 back up hidden state
-#             hidden_prev = Variable(rnn.hidden.data).cuda()
+#             hidden_prev = Variable(rnn.hidden.data).to(device)
 #             h = rnn(x_step)
 #             y_pred_step = output(h)
 #             y_pred[:, i:i + 1, :] = F.sigmoid(y_pred_step)
-#             x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].cuda(), current=i, y_len=y_len, sample_time=sample_time)
+#             x_step = sample_sigmoid_supervised(y_pred_step, y[:,i:i+1,:].to(device), current=i, y_len=y_len, sample_time=sample_time)
 #             y_pred_long[:, i:i + 1, :] = x_step
 #
-#             rnn.hidden = Variable(rnn.hidden.data).cuda()
+#             rnn.hidden = Variable(rnn.hidden.data).to(device)
 #
 #             print('finish node', i)
 #         y_pred_data = y_pred.data
@@ -472,10 +472,10 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
             count_temp = np.sum(output_y_len_bin[i:]) # count how many y_len is above i
             output_y_len.extend([min(i,y.size(2))]*count_temp) # put them in output_y_len; max value should not exceed y.size(2)
         # pack into variable
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
-        output_x = Variable(output_x).cuda()
-        output_y = Variable(output_y).cuda()
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
+        output_x = Variable(output_x).to(device)
+        output_y = Variable(output_y).to(device)
         # print(output_y_len)
         # print('len',len(output_y_len))
         # print('y',y.size())
@@ -487,9 +487,9 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
         h = pack_padded_sequence(h,y_len,batch_first=True).data # get packed hidden vector
         # reverse h
         idx = [i for i in range(h.size(0) - 1, -1, -1)]
-        idx = Variable(torch.LongTensor(idx)).cuda()
+        idx = Variable(torch.LongTensor(idx)).to(device)
         h = h.index_select(0, idx)
-        hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).cuda()
+        hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).to(device)
         output.hidden = torch.cat((h.view(1,h.size(0),h.size(1)),hidden_null),dim=0) # num_layers, batch_size, hidden_size
         y_pred = output(output_x, pack=True, input_len=output_y_len)
         y_pred = F.sigmoid(y_pred)
@@ -513,9 +513,11 @@ def train_rnn_epoch(epoch, args, rnn, output, data_loader,
                 epoch, args.epochs,loss.data[0], args.graph_type, args.num_layers, args.hidden_size_rnn))
 
         # logging
-        log_value('loss_'+args.fname, loss.data[0], epoch*args.batch_ratio+batch_idx)
+        # ('loss_'+args.fname, loss.data[0], epoch*args.batch_ratio+batch_idx)
+        log_value('loss_'+args.fname, loss.item(), epoch*args.batch_ratio+batch_idx)
         feature_dim = y.size(1)*y.size(2)
-        loss_sum += loss.data[0]*feature_dim
+        # loss_sum += loss.data[0]*feature_dim
+        loss_sum += loss.item()*feature_dim
     return loss_sum/(batch_idx+1)
 
 
@@ -527,23 +529,23 @@ def test_rnn_epoch(epoch, args, rnn, output, test_batch_size=16):
 
     # generate graphs
     max_num_node = int(args.max_num_node)
-    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).cuda() # discrete prediction
-    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).cuda()
+    y_pred_long = Variable(torch.zeros(test_batch_size, max_num_node, args.max_prev_node)).to(device) # discrete prediction
+    x_step = Variable(torch.ones(test_batch_size,1,args.max_prev_node)).to(device)
     for i in range(max_num_node):
         h = rnn(x_step)
         # output.hidden = h.permute(1,0,2)
-        hidden_null = Variable(torch.zeros(args.num_layers - 1, h.size(0), h.size(2))).cuda()
+        hidden_null = Variable(torch.zeros(args.num_layers - 1, h.size(0), h.size(2))).to(device)
         output.hidden = torch.cat((h.permute(1,0,2), hidden_null),
                                   dim=0)  # num_layers, batch_size, hidden_size
-        x_step = Variable(torch.zeros(test_batch_size,1,args.max_prev_node)).cuda()
-        output_x_step = Variable(torch.ones(test_batch_size,1,1)).cuda()
+        x_step = Variable(torch.zeros(test_batch_size,1,args.max_prev_node)).to(device)
+        output_x_step = Variable(torch.ones(test_batch_size,1,1)).to(device)
         for j in range(min(args.max_prev_node,i+1)):
             output_y_pred_step = output(output_x_step)
             output_x_step = sample_sigmoid(output_y_pred_step, sample=True, sample_time=1)
             x_step[:,:,j:j+1] = output_x_step
-            output.hidden = Variable(output.hidden.data).cuda()
+            output.hidden = Variable(output.hidden.data).to(device)
         y_pred_long[:, i:i + 1, :] = x_step
-        rnn.hidden = Variable(rnn.hidden.data).cuda()
+        rnn.hidden = Variable(rnn.hidden.data).to(device)
     y_pred_long_data = y_pred_long.data.long()
 
     # save graphs as pickle
@@ -599,10 +601,10 @@ def train_rnn_forward_epoch(epoch, args, rnn, output, data_loader):
             count_temp = np.sum(output_y_len_bin[i:]) # count how many y_len is above i
             output_y_len.extend([min(i,y.size(2))]*count_temp) # put them in output_y_len; max value should not exceed y.size(2)
         # pack into variable
-        x = Variable(x).cuda()
-        y = Variable(y).cuda()
-        output_x = Variable(output_x).cuda()
-        output_y = Variable(output_y).cuda()
+        x = Variable(x).to(device)
+        y = Variable(y).to(device)
+        output_x = Variable(output_x).to(device)
+        output_y = Variable(output_y).to(device)
         # print(output_y_len)
         # print('len',len(output_y_len))
         # print('y',y.size())
@@ -614,9 +616,9 @@ def train_rnn_forward_epoch(epoch, args, rnn, output, data_loader):
         h = pack_padded_sequence(h,y_len,batch_first=True).data # get packed hidden vector
         # reverse h
         idx = [i for i in range(h.size(0) - 1, -1, -1)]
-        idx = Variable(torch.LongTensor(idx)).cuda()
+        idx = Variable(torch.LongTensor(idx)).to(device)
         h = h.index_select(0, idx)
-        hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).cuda()
+        hidden_null = Variable(torch.zeros(args.num_layers-1, h.size(0), h.size(1))).to(device)
         output.hidden = torch.cat((h.view(1,h.size(0),h.size(1)),hidden_null),dim=0) # num_layers, batch_size, hidden_size
         y_pred = output(output_x, pack=True, input_len=output_y_len)
         y_pred = F.sigmoid(y_pred)

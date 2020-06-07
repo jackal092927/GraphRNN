@@ -127,11 +127,13 @@ def sample_sigmoid(y, sample, thresh=0.5, sample_time=2):
                     # else:
                     #     print('all zero',j)
         else:
-            y_thresh = Variable(torch.rand(y.size(0),y.size(1),y.size(2))).cuda()
+            # y_thresh = Variable(torch.rand(y.size(0),y.size(1),y.size(2))).cuda()
+            y_thresh = Variable(torch.rand(y.size(0),y.size(1),y.size(2)))
             y_result = torch.gt(y,y_thresh).float()
     # do max likelihood based on some threshold
     else:
-        y_thresh = Variable(torch.ones(y.size(0), y.size(1), y.size(2))*thresh).cuda()
+        # y_thresh = Variable(torch.ones(y.size(0), y.size(1), y.size(2))*thresh).cuda()
+        y_thresh = Variable(torch.ones(y.size(0), y.size(1), y.size(2))*thresh)
         y_result = torch.gt(y, y_thresh).float()
     return y_result
 
@@ -302,7 +304,8 @@ class GRU_plain(nn.Module):
                 m.weight.data = init.xavier_uniform(m.weight.data, gain=nn.init.calculate_gain('relu'))
 
     def init_hidden(self, batch_size):
-        return Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size)).cuda()
+        return Variable(torch.zeros(self.num_layers, batch_size, self.hidden_size))
+        # .cuda()
 
     def forward(self, input_raw, pack=False, input_len=None):
         if self.has_input:
@@ -385,7 +388,8 @@ class MLP_VAE_plain(nn.Module):
         z_lsgms = self.encode_12(h)
         # reparameterize
         z_sgm = z_lsgms.mul(0.5).exp_()
-        eps = Variable(torch.randn(z_sgm.size())).cuda()
+        # eps = Variable(torch.randn(z_sgm.size())).cuda()
+        eps = Variable(torch.randn(z_sgm.size()))
         z = eps*z_sgm + z_mu
         # decoder
         y = self.decode_1(z)
@@ -414,7 +418,8 @@ class MLP_VAE_conditional_plain(nn.Module):
         z_lsgms = self.encode_12(h)
         # reparameterize
         z_sgm = z_lsgms.mul(0.5).exp_()
-        eps = Variable(torch.randn(z_sgm.size(0), z_sgm.size(1), z_sgm.size(2))).cuda()
+        # eps = Variable(torch.randn(z_sgm.size(0), z_sgm.size(1), z_sgm.size(2))).cuda()
+        eps = Variable(torch.randn(z_sgm.size(0), z_sgm.size(1), z_sgm.size(2)))
         z = eps * z_sgm + z_mu
         # decoder
         y = self.decode_1(torch.cat((h,z),dim=2))
