@@ -8,6 +8,7 @@ if __name__ == '__main__':
     # use cuda or not depending on device available
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print('CUDA', args.cuda)
+    print(device)
     print('File name prefix',args.fname)
     # check if necessary directories exist
     if not os.path.isdir(args.model_save_path):
